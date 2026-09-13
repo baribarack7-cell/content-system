@@ -11,14 +11,7 @@ const GEORGE_BASE =
   "The photo looks like a real person's social media post, not a stock photo or advertisement.";
 
 app.get("/", (req, res) => {
-  res.json({
-    status: "running",
-    service: "MyAttire Content System",
-    endpoints: {
-      generate: "POST /generate",
-      health: "GET /health",
-    },
-  });
+  res.json({ status: "running", service: "MyAttire Content System" });
 });
 
 app.get("/health", (req, res) => {
@@ -28,10 +21,7 @@ app.get("/health", (req, res) => {
 app.post("/generate", async (req, res) => {
   try {
     const { outfit, style_notes } = req.body;
-
-    if (!outfit) {
-      return res.status(400).json({ error: "outfit is required" });
-    }
+    if (!outfit) return res.status(400).json({ error: "outfit is required" });
 
     const prompt = `${GEORGE_BASE} He is wearing: ${outfit}. ${
       style_notes || "Clean, minimal, effortless. Nothing try-hard."
@@ -50,7 +40,7 @@ app.post("/generate", async (req, res) => {
         prompt,
         n: 1,
         size: "1024x1792",
-        quality: "standard",
+        quality: "medium",
       }),
     });
 
@@ -61,16 +51,12 @@ app.post("/generate", async (req, res) => {
       return res.status(500).json({ error: data.error?.message || "OpenAI error", details: data });
     }
 
-    // gpt-image-1 returns base64, convert to data URL
     const imageB64 = data.data[0].b64_json;
-    const imageDataUrl = imageB64 ? `data:image/png;base64,${imageB64}` : null;
-
     console.log("Image generated successfully");
 
     res.json({
       success: true,
       image_b64: imageB64,
-      image_data_url: imageDataUrl,
       outfit,
     });
   } catch (err) {
@@ -80,6 +66,4 @@ app.post("/generate", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Content System running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Content System running on port ${PORT}`));
