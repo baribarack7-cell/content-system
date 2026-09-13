@@ -7,7 +7,7 @@ const GEORGE_BASE =
   "A 20 year old white British male, lean athletic build, short dark hair, " +
   "taking a mirror selfie in a clean minimal modern London flat bedroom. " +
   "Phone covering his face. Natural window light. Realistic, candid, shot on iPhone. " +
-  "Not posed, genuine feel. Minimal background — white or grey walls, clean shelves, simple unmade bed. " +
+  "Not posed, genuine feel. Minimal background - white or grey walls, clean shelves, simple unmade bed. " +
   "The photo looks like a real person's social media post, not a stock photo or advertisement.";
 
 app.get("/", (req, res) => {
@@ -38,7 +38,6 @@ app.post("/generate", async (req, res) => {
     }`;
 
     console.log("Generating image...");
-    console.log("Prompt:", prompt);
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -47,7 +46,7 @@ app.post("/generate", async (req, res) => {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt,
         n: 1,
         size: "1024x1792",
@@ -62,16 +61,17 @@ app.post("/generate", async (req, res) => {
       return res.status(500).json({ error: data.error?.message || "OpenAI error", details: data });
     }
 
-    const imageUrl = data.data[0].url;
-    const revisedPrompt = data.data[0].revised_prompt;
+    // gpt-image-1 returns base64, convert to data URL
+    const imageB64 = data.data[0].b64_json;
+    const imageDataUrl = imageB64 ? `data:image/png;base64,${imageB64}` : null;
 
-    console.log("Image generated:", imageUrl);
+    console.log("Image generated successfully");
 
     res.json({
       success: true,
-      image_url: imageUrl,
+      image_b64: imageB64,
+      image_data_url: imageDataUrl,
       outfit,
-      revised_prompt: revisedPrompt,
     });
   } catch (err) {
     console.error("Error:", err);
