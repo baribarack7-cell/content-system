@@ -39,7 +39,7 @@ app.post("/generate", async (req, res) => {
         model: "gpt-image-1",
         prompt,
         n: 1,
-        size: "1024x1792",
+        size: "1024x1536",
         quality: "medium",
       }),
     });
@@ -54,11 +54,7 @@ app.post("/generate", async (req, res) => {
     const imageB64 = data.data[0].b64_json;
     console.log("Image generated successfully");
 
-    res.json({
-      success: true,
-      image_b64: imageB64,
-      outfit,
-    });
+    res.json({ success: true, image_b64: imageB64, outfit });
   } catch (err) {
     console.error("Error:", err);
     res.status(500).json({ error: err.message });
