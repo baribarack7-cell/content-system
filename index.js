@@ -1,30 +1,28 @@
 const express = require("express");
-const OpenAI = require("openai");
 
 const app = express();
 app.use(express.json());
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const GEORGE_BASE =
-  "A 20 year old white British male, lean athletic build, dark hair, " +
+  "A 20 year old white British male, lean athletic build, short dark hair, " +
   "taking a mirror selfie in a clean minimal modern London flat bedroom. " +
   "Phone covering his face. Natural window light. Realistic, candid, shot on iPhone. " +
-  "Not posed, genuine feel. Minimal background — white/grey walls, clean shelves, simple bed.";
+  "Not posed, genuine feel. Minimal background — white or grey walls, clean shelves, simple unmade bed. " +
+  "The photo looks like a real person's social media post, not a stock photo or advertisement.";
 
 app.get("/", (req, res) => {
   res.json({
     status: "running",
     service: "MyAttire Content System",
     endpoints: {
-      generate: "POST /generate — generate a George outfit image",
+      generate: "POST /generate",
       health: "GET /health",
     },
   });
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 app.post("/generate", async (req, res) => {
@@ -36,21 +34,38 @@ app.post("/generate", async (req, res) => {
     }
 
     const prompt = `${GEORGE_BASE} He is wearing: ${outfit}. ${
-      style_notes || "Clean, minimal, effortless style. Nothing try-hard."
+      style_notes || "Clean, minimal, effortless. Nothing try-hard."
     }`;
 
-    console.log("Generating image with prompt:", prompt);
+    console.log("Generating image...");
+    console.log("Prompt:", prompt);
 
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt,
-      n: 1,
-      size: "1024x1792",
-      quality: "standard",
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt,
+        n: 1,
+        size: "1024x1792",
+        quality: "standard",
+      }),
     });
 
-    const imageUrl = response.data[0].url;
-    const revisedPrompt = response.data[0].revised_prompt;
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenAI error:", data);
+      return res.status(500).json({ error: data.error?.message || "OpenAI error", details: data });
+    }
+
+    const imageUrl = data.data[0].url;
+    const revisedPrompt = data.data[0].revised_prompt;
+
+    console.log("Image generated:", imageUrl);
 
     res.json({
       success: true,
@@ -59,11 +74,8 @@ app.post("/generate", async (req, res) => {
       revised_prompt: revisedPrompt,
     });
   } catch (err) {
-    console.error("Generation error:", err);
-    res.status(500).json({
-      error: err.message,
-      type: err.constructor.name,
-    });
+    console.error("Error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
